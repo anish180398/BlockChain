@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereum Wallet Toolkit</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+            color: #333;
+        }
+        header {
+            background-color: #ff9c27;
+            color: white;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        h1 {
+            margin: 0;
+        }
+        .instructions {
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            border-radius: 8px;
+        }
+        footer {
+            text-align: center;
+            padding: 1rem;
+            margin-top: 2rem;
+            background-color: #f0f0f0;
+        }
+        #app-container {
+            padding: 1.5rem;
+        }
+        a {
+            color: #ff9c27;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ethereum Wallet Toolkit</h1>
+        <p>Connect your wallet with MetaMask</p>
+    </header>
+
+    <div class="instructions">
+        <h2>Getting Started</h2>
+        <ol>
+            <li>Make sure MetaMask is installed in your browser</li>
+            <li>Connect to MetaMask using the button below</li>
+            <li>Switch to Ganache network to interact with your local blockchain</li>
+            <li>You can then fetch Ganache accounts to import them into MetaMask</li>
+        </ol>
+    </div>
+
+    <div id="app-container">
+        <!-- The MetaMask connector script will insert UI here -->
+    </div>
+
+
+    <script src="metamask-connector.js"></script>
+</body>
+</html> 
