@@ -1,0 +1,30 @@
+{
+  "name": "simplecrypto",
+  "version": "1.0.0",
+  "main": "deploy-token.js",
+  "scripts": {
+    "demo": "node deploy-token.js",
+    "client": "node client.js",
+    "test": "echo \"No tests specified\""
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "cryptocurrency",
+    "token",
+    "solidity"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "A simple crypto transaction app demonstrating local blockchain interactions",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "ethers": "^5.7.2",
+    "ganache": "^7.9.2",
+    "solc": "^0.8.21",
+    "web3": "^1.10.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
