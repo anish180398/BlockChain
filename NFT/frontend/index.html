@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple NFT Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; padding-top: 20px; }
+    .card { box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .nft-image { width: 100%; height: 280px; object-fit: cover; }
+    #preview-image { max-width: 100%; max-height: 300px; display: none; margin: 10px 0; }
+    .loading-spinner { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="text-center mb-4">
+      <h1 class="mb-2">NFT Creation & Exchange</h1>
+      <div id="account-info" class="alert alert-info">Connect to MetaMask</div>
+    </header>
+
+    <div class="row">
+      <!-- Create NFT Card -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Create New NFT</h4>
+          </div>
+          <div class="card-body">
+            <form id="nft-form">
+              <div class="mb-3">
+                <label for="nft-name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="nft-name" required>
+              </div>
+              <div class="mb-3">
+                <label for="nft-description" class="form-label">Description</label>
+                <textarea class="form-control" id="nft-description" rows="2"></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="image-upload" class="form-label">Image</label>
+                <input type="file" class="form-control" id="image-upload" accept="image/*" required>
+                <img id="preview-image" class="mt-2 border rounded">
+              </div>
+              <button type="submit" class="btn btn-primary" id="mintBtn">
+                <span class="spinner-border spinner-border-sm loading-spinner" id="mint-spinner"></span>
+                Mint NFT
+              </button>
+            </form>
+            <div class="mt-3" id="mint-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transfer NFT Card -->
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-warning text-dark">
+            <h4 class="mb-0">Transfer NFT</h4>
+          </div>
+          <div class="card-body">
+            <form id="transfer-form">
+              <div class="mb-3">
+                <label for="token-id" class="form-label">Token ID</label>
+                <input type="number" class="form-control" id="token-id" required>
+              </div>
+              <div class="mb-3">
+                <label for="recipient-address" class="form-label">Recipient Address</label>
+                <input type="text" class="form-control" id="recipient-address" required>
+              </div>
+              <button type="submit" class="btn btn-warning" id="transferBtn">
+                <span class="spinner-border spinner-border-sm loading-spinner" id="transfer-spinner"></span>
+                Transfer NFT
+              </button>
+            </form>
+            <div class="mt-3" id="transfer-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My NFTs Section -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">My NFTs</h4>
+            <button class="btn btn-light" id="refresh-nfts">Refresh</button>
+          </div>
+          <div class="card-body">
+            <div class="row" id="nft-container"></div>
+            <div id="no-nfts-message" class="text-center py-4">You don't have any NFTs yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

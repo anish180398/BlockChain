@@ -1,0 +1,10 @@
+{
+  "server": {
+    "baseDir": ["./frontend"],
+    "routes": {
+      "/node_modules": "node_modules"
+    }
+  },
+  "port": 3000,
+  "files": ["./frontend/**/*"]
+} 
