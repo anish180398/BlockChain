@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Image Compression Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .image-container {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3>NFT Image Compression Test</h3>
+                        <p class="mb-0">Test your image sizes before minting</p>
+                    </div>
+                    <div class="card-body">
+                        <p>This tool will help you check if your image is suitable for on-chain storage or if it needs compression.</p>
+                        
+                        <div class="mb-3">
+                            <label for="imageUpload" class="form-label">Upload Image</label>
+                            <input type="file" class="form-control" id="imageUpload" accept="image/*">
+                        </div>
+                        
+                        <div class="row" id="results" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="image-container">
+                                    <h4>Original Image</h4>
+                                    <img id="originalPreview" class="image-preview">
+                                    <div id="originalStats"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="image-container">
+                                    <h4>Compressed Image</h4>
+                                    <img id="compressedPreview" class="image-preview">
+                                    <div id="compressedStats"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-info" id="recommendation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        NFT Size Guidelines
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Recommended maximum size:</strong> 20KB for on-chain storage</p>
+                        <p><strong>Why?</strong> Ethereum transactions have gas limits, and storing large images directly on-chain can be expensive or fail.</p>
+                        <p><strong>Alternatives:</strong> For larger images, consider using IPFS or another decentralized storage solution.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="index.html" class="btn btn-secondary">Back to App</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Function to compress an image
+        async function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Create canvas for compression
+                        const canvas = document.createElement('canvas');
+                        
+                        // Calculate new dimensions (max 800px width/height)
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDimension = 800;
+                        
+                        if (width > maxDimension || height > maxDimension) {
+                            if (width > height) {
+                                height = Math.round((height * maxDimension) / width);
+                                width = maxDimension;
+                            } else {
+                                width = Math.round((width * maxDimension) / height);
+                                height = maxDimension;
+                            }
+                        }
+                        
+                        // Resize the image
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Convert to base64 with compression
+                        const quality = 0.7; // 70% quality
+                        const base64 = canvas.toDataURL('image/jpeg', quality);
+                        
+                        resolve({
+                            dataUrl: base64,
+                            width,
+                            height,
+                            size: Math.round(base64.length * 0.75) // Approximate size in bytes
+                        });
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Handle file upload
+        document.getElementById('imageUpload').addEventListener('change', async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Display original image
+            const originalPreview = document.getElementById('originalPreview');
+            const originalReader = new FileReader();
+            
+            originalReader.onload = async function(e) {
+                // Show results section
+                document.getElementById('results').style.display = 'flex';
+                
+                // Display original image
+                originalPreview.src = e.target.result;
+                
+                // Calculate original size
+                const originalSize = file.size;
+                const originalSizeKB = (originalSize / 1024).toFixed(2);
+                
+                // Get the image dimensions
+                const img = new Image();
+                img.onload = async function() {
+                    // Update original stats
+                    document.getElementById('originalStats').innerHTML = `
+                        <p><strong>Size:</strong> ${originalSizeKB} KB</p>
+                        <p><strong>Dimensions:</strong> ${img.width}×${img.height} px</p>
+                        <p><strong>Type:</strong> ${file.type}</p>
+                    `;
+                    
+                    // Compress the image
+                    const compressed = await compressImage(file);
+                    
+                    // Display compressed image
+                    document.getElementById('compressedPreview').src = compressed.dataUrl;
+                    
+                    // Calculate compressed size
+                    const compressedSizeKB = (compressed.size / 1024).toFixed(2);
+                    
+                    // Update compressed stats
+                    document.getElementById('compressedStats').innerHTML = `
+                        <p><strong>Size:</strong> ${compressedSizeKB} KB</p>
+                        <p><strong>Dimensions:</strong> ${compressed.width}×${compressed.height} px</p>
+                        <p><strong>Compression ratio:</strong> ${Math.round((1 - compressed.size / originalSize) * 100)}%</p>
+                    `;
+                    
+                    // Provide recommendation
+                    const recommendation = document.getElementById('recommendation');
+                    
+                    if (compressedSizeKB > 20) {
+                        recommendation.className = 'alert alert-warning';
+                        recommendation.innerHTML = `
+                            <h5>⚠️ Warning: Image still large after compression</h5>
+                            <p>The compressed image is ${compressedSizeKB} KB, which might be too large for on-chain storage.</p>
+                            <p>Consider using IPFS or another storage solution, or try a smaller image.</p>
+                        `;
+                    } else {
+                        recommendation.className = 'alert alert-success';
+                        recommendation.innerHTML = `
+                            <h5>✅ Success: Image ready for minting</h5>
+                            <p>The compressed image is ${compressedSizeKB} KB, which should work for on-chain storage.</p>
+                            <p>Compression reduced the size by ${Math.round((1 - compressed.size / originalSize) * 100)}%!</p>
+                        `;
+                    }
+                };
+                img.src = e.target.result;
+            };
+            
+            originalReader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html> 

@@ -654,7 +654,8 @@ function createDebugPanel() {
 
 // Function to prompt for contract address
 function promptForContractAddress() {
-  const suggestedAddress = "0x280b8D15277C4510237F7d96a0F4988adcB71aD2"; // Your latest deployed address
+  // Get the latest deployed address from the build artifacts
+  const suggestedAddress = "0x5ea4690cfA3f90E5978737c301817AC60afa5Cf7"; // Your latest deployed address
   const newAddress = prompt(`Please enter your NFT contract address from Ganache:\n\nSuggestion: ${suggestedAddress}`);
   
   if (!newAddress) return; // User cancelled
@@ -697,14 +698,14 @@ function initializeContract() {
       {
         "inputs": [],
         "name": "name",
-        "outputs": [{"type": "string"}],
+        "outputs": [{"name": "", "type": "string"}],
         "stateMutability": "view",
         "type": "function"
       },
       {
         "inputs": [],
         "name": "symbol",
-        "outputs": [{"type": "string"}],
+        "outputs": [{"name": "", "type": "string"}],
         "stateMutability": "view",
         "type": "function"
       }
@@ -713,10 +714,15 @@ function initializeContract() {
     // First verify with minimal ABI
     const verificationContract = new web3.eth.Contract(minimalAbi, contractAddress);
     
+    // Add debug message to the debug panel
+    const debugOutput = document.getElementById('debug-output');
+    debugOutput.innerHTML += `<div>Attempting to verify contract at: ${contractAddress}</div>`;
+    
     // Verify the contract exists and is an NFT by calling basic functions
     verificationContract.methods.name().call()
       .then(name => {
         console.log("Contract verified successfully. Name:", name);
+        debugOutput.innerHTML += `<div style="color:green">Contract verified! Name: ${name}</div>`;
         
         // Now create the full contract with complete ABI
         nftContract = new web3.eth.Contract(abi, contractAddress);
@@ -731,6 +737,22 @@ function initializeContract() {
       .catch(error => {
         console.error("Contract verification failed:", error);
         console.error("Error details:", JSON.stringify(error, null, 2));
+        
+        // Add detailed error to debug panel
+        debugOutput.innerHTML += `<div style="color:red">Contract verification failed: ${error.message}</div>`;
+        
+        // Try to get more information about the contract
+        web3.eth.getCode(contractAddress)
+          .then(code => {
+            if (code === '0x' || code === '0x0') {
+              debugOutput.innerHTML += `<div style="color:red">No contract exists at this address!</div>`;
+            } else {
+              debugOutput.innerHTML += `<div style="color:orange">Contract exists but may not be an NFT contract or may be on a different network.</div>`;
+            }
+          })
+          .catch(err => {
+            debugOutput.innerHTML += `<div style="color:red">Error checking contract code: ${err.message}</div>`;
+          });
         
         // Update contract status
         document.getElementById('contract-address-display').textContent = `${formatAddress(contractAddress)} (INVALID)`;
@@ -794,12 +816,35 @@ async function mintNFT(event) {
     showSpinner('mint-spinner', 'mintBtn');
     updateStatusMessage('mint-status', "Processing... Please wait", 'info');
     
-    // Convert image to base64
-    const imageURI = await readFileAsDataURL(imageFile);
+    // Add debug information
+    const debugOutput = document.getElementById('debug-output');
+    debugOutput.innerHTML += `<div>Preparing to mint NFT: ${name}</div>`;
+    debugOutput.innerHTML += `<div>Image size: ${(imageFile.size / 1024).toFixed(2)} KB</div>`;
+    
+    // Check if the image is too large (> 1MB)
+    if (imageFile.size > 1024 * 1024) {
+      debugOutput.innerHTML += `<div style="color:orange">Image is large. Compressing...</div>`;
+      // We'll need to compress the image
+    }
+    
+    // Convert image to base64 with possible compression
+    const imageURI = await compressAndConvertImage(imageFile);
+    debugOutput.innerHTML += `<div>Base64 image size: ${(imageURI.length / 1024).toFixed(2)} KB</div>`;
     
     // Create metadata
     const metadata = { name, description, image: imageURI };
     const metadataStr = JSON.stringify(metadata);
+    
+    debugOutput.innerHTML += `<div>Metadata size: ${(metadataStr.length / 1024).toFixed(2)} KB</div>`;
+    
+    // Check if metadata is too large (Ethereum has ~24KB transaction size limit)
+    if (metadataStr.length > 20000) {
+      debugOutput.innerHTML += `<div style="color:red">Metadata is too large (${(metadataStr.length / 1024).toFixed(2)} KB). 
+        Consider using IPFS or reducing image size.</div>`;
+      updateStatusMessage('mint-status', "Metadata is too large. Please use a smaller image.", 'danger');
+      hideSpinner('mint-spinner', 'mintBtn');
+      return;
+    }
     
     console.log("Metadata created, length:", metadataStr.length);
     console.log("Preparing to mint NFT with name:", name);
@@ -808,8 +853,15 @@ async function mintNFT(event) {
     const balance = await web3.eth.getBalance(accounts[0]);
     console.log("Account balance:", web3.utils.fromWei(balance, 'ether'), "ETH");
     
+    if (web3.utils.fromWei(balance, 'ether') < 0.01) {
+      debugOutput.innerHTML += `<div style="color:red">Account balance too low: ${web3.utils.fromWei(balance, 'ether')} ETH</div>`;
+      updateStatusMessage('mint-status', "Your account balance is too low for gas fees", 'danger');
+      hideSpinner('mint-spinner', 'mintBtn');
+      return;
+    }
+    
     // Mint NFT with specific gas settings for Ganache
-    console.log("Calling mint function...");
+    debugOutput.innerHTML += `<div>Calling mint function...</div>`;
     
     const mintMethod = nftContract.methods.mint(metadataStr);
     
@@ -817,9 +869,9 @@ async function mintNFT(event) {
     let gasEstimate;
     try {
       gasEstimate = await mintMethod.estimateGas({from: accounts[0]});
-      console.log("Estimated gas:", gasEstimate);
+      debugOutput.innerHTML += `<div>Estimated gas: ${gasEstimate}</div>`;
     } catch (gasError) {
-      console.error("Gas estimation failed:", gasError);
+      debugOutput.innerHTML += `<div style="color:red">Gas estimation failed: ${gasError.message}</div>`;
       // Use a default high value if estimation fails
       gasEstimate = 5000000;
     }
@@ -832,12 +884,14 @@ async function mintNFT(event) {
     });
     
     console.log("Transaction successful:", result.transactionHash);
+    debugOutput.innerHTML += `<div style="color:green">Transaction successful: ${result.transactionHash}</div>`;
     
     // Get the token ID from the event
     let tokenId;
     if (result.events && result.events.NFTMinted) {
       tokenId = result.events.NFTMinted.returnValues.tokenId;
       console.log("NFT minted with token ID:", tokenId);
+      debugOutput.innerHTML += `<div style="color:green">NFT minted with token ID: ${tokenId}</div>`;
     } else {
       console.log("Minting successful but couldn't extract token ID from events");
       tokenId = "unknown";
@@ -851,6 +905,7 @@ async function mintNFT(event) {
     loadNFTs();
   } catch (error) {
     console.error("Error minting NFT:", error);
+    debugOutput.innerHTML += `<div style="color:red">Error: ${error.message}</div>`;
     
     // Create a detailed error message
     let errorMessage = error.message || "Unknown error";
@@ -861,12 +916,62 @@ async function mintNFT(event) {
         "1. MetaMask can't communicate with Ganache properly\n" +
         "2. The metadata might be too large for the transaction\n" + 
         "3. Your account might not have enough ETH for gas fees";
+      
+      debugOutput.innerHTML += `<div style="color:orange">Possible solutions:</div>`;
+      debugOutput.innerHTML += `<div>1. Make sure Ganache is running on port 7545</div>`;
+      debugOutput.innerHTML += `<div>2. Try using a smaller image</div>`;
+      debugOutput.innerHTML += `<div>3. Make sure your account has enough ETH</div>`;
     }
     
     updateStatusMessage('mint-status', `Error minting NFT: ${errorMessage}`, 'danger');
   } finally {
     hideSpinner('mint-spinner', 'mintBtn');
   }
+}
+
+// Function to compress and convert image to base64
+async function compressAndConvertImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create canvas for compression
+        const canvas = document.createElement('canvas');
+        
+        // Calculate new dimensions (max 800px width/height)
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 800;
+        
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        
+        // Resize the image
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression
+        const quality = 0.7; // 70% quality
+        const base64 = canvas.toDataURL('image/jpeg', quality);
+        
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = event.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 async function transferNFT(event) {
