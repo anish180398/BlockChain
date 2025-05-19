@@ -1,0 +1,9 @@
+{
+  "name": "simple-nft-mint",
+  "version": "1.0.0",
+  "dependencies": {
+    "web3": "1.8.2",
+    "@openzeppelin/contracts": "4.7.3",
+    "solc": "0.8.17"
+  }
+} 
