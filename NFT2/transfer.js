@@ -14,6 +14,16 @@ async function transferNFT() {
 
     // Get the contract ABI
     const { abi } = compileContract();
+    
+    // Print the ABI structure
+    console.log('\nContract ABI Structure:');
+    console.log('Functions available in the contract:');
+    abi.forEach(item => {
+        if (item.type === 'function') {
+            console.log(`- ${item.name}: ${item.inputs.map(input => input.type).join(', ')}`);
+        }
+    });
+    console.log('\n');
 
     // Create contract instance
     const contract = new web3.eth.Contract(abi, contractAddress);
